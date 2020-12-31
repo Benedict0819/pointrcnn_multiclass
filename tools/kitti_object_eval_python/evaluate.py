@@ -25,7 +25,7 @@ def evaluate(label_path,
     if coco:
         return get_coco_eval_result(gt_annos, dt_annos, current_class)
     else:
-        return get_official_eval_result(gt_annos, dt_annos, current_class)
+        return get_official_eval_result(gt_annos, dt_annos, current_class) #### Use it
 
 
 if __name__ == '__main__':

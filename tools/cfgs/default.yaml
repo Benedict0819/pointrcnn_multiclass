@@ -1,4 +1,4 @@
-CLASSES: ['Car', 'Pedestrain', 'Cyclist']
+CLASSES: Multiclass
 
 INCLUDE_SIMILAR_TYPE: True
 
@@ -109,10 +109,10 @@ RCNN:
     REG_FC: [256, 256]
 
     # config of training
-    LOSS_CLS: BinaryCrossEntropy
+    LOSS_CLS: CrossEntropy #### BinaryCrossEntropy
     FOCAL_ALPHA: [0.25, 0.75]
     FOCAL_GAMMA: 2.0
-    CLS_WEIGHT: [1.0, 1.0, 1.0]
+    CLS_WEIGHT: [1.0, 1.0, 1.0, 1.0] #### How can I use it? we have to match weight.size and class.size # original : [1.0, 1.0, 1.0, 1.0]
     CLS_FG_THRESH: 0.6
     CLS_BG_THRESH: 0.45
     CLS_BG_THRESH_LO: 0.05

@@ -9,6 +9,9 @@ def get_objects_from_label(label_file):
     with open(label_file, 'r') as f:
         lines = f.readlines()
     objects = [object3d.Object3d(line) for line in lines]
+    #### print(objects)
+    #### Example. sample id = 000003 : [<lib.utils.object3d.Object3d object at 0x7f5777026a20>, <lib.utils.object3d.Object3d object at 0x7f5777026a90>, <lib.utils.object3d.Object3d object at 0x7f5777026ac8>]
+    #### objects in each scene
     return objects
 
 

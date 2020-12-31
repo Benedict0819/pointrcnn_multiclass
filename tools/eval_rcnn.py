@@ -443,8 +443,9 @@ def eval_one_epoch_rcnn(model, dataloader, epoch_id, result_dir, logger):
                                                                       total_gt_bbox, cur_recall))
         ret_dict['rcnn_recall(thresh=%.2f)' % thresh] = cur_recall
 
-    if cfg.TEST.SPLIT != 'test':
+    if cfg.TEST.SPLIT != 'test': #### cfg.TEST.SPLIT = 'val'
         logger.info('Averate Precision:')
+        print("validation start!")
         name_to_class = {'Car': 0, 'Pedestrian': 1, 'Cyclist': 2}
         ap_result_str, ap_dict = kitti_evaluate(dataset.label_dir, final_output_dir, label_split_file=split_file,
                                                 current_class=name_to_class[cfg.CLASSES])
@@ -455,7 +456,9 @@ def eval_one_epoch_rcnn(model, dataloader, epoch_id, result_dir, logger):
 
     return ret_dict
 
-
+#####################################################################################################################################
+############################################### We use eval_one_epoch_joint for evaluation ##########################################
+#####################################################################################################################################
 def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
     np.random.seed(666)
     MEAN_SIZE = torch.from_numpy(cfg.CLS_MEAN_SIZE[0]).cuda()
@@ -516,16 +519,29 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
                                           get_ry_fine=True).view(batch_size, -1, 7)
 
         # scoring
+        # print("rcnn_cls.size", rcnn_cls.size()) #### size([1,100,4]) vs size([1,100,1])
         if rcnn_cls.shape[2] == 1:
             raw_scores = rcnn_cls  # (B, M, 1)
-
             norm_scores = torch.sigmoid(raw_scores)
             pred_classes = (norm_scores > cfg.RCNN.SCORE_THRESH).long()
+
         else:
-            pred_classes = torch.argmax(rcnn_cls, dim=1).view(-1)
-            cls_norm_scores = F.softmax(rcnn_cls, dim=1)
+            pred_classes = torch.argmax(rcnn_cls, dim=2).view(-1)
+            # print("pred_classes", pred_classes) # size([100]) : select highest score labels
+            cls_norm_scores = F.softmax(rcnn_cls, dim=2)
+            # print(cls_norm_scores.size()) # size([1,100,4])
             raw_scores = rcnn_cls[:, pred_classes]
+            # print("1",raw_scores) # inlcuding minus value
+            # print("2",raw_scores.size()) # size([1,100,4])
             norm_scores = cls_norm_scores[:, pred_classes]
+            # print("3",norm_scores) # value range (0~1)
+            # print("4",norm_scores.size()) # size([1,100,4])
+
+        # else: #### original ver
+        #     pred_classes = torch.argmax(rcnn_cls, dim=1).view(-1)
+        #     cls_norm_scores = F.softmax(rcnn_cls, dim=1)
+        #     raw_scores = rcnn_cls[:, pred_classes]
+        #     norm_scores = cls_norm_scores[:, pred_classes]
 
         # evaluation
         recalled_num = gt_num = rpn_iou = 0
@@ -602,12 +618,18 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
                 np.save(output_file, output_data.astype(np.float32))
 
         # scores thresh
-        inds = norm_scores > cfg.RCNN.SCORE_THRESH
+        #### inds = norm_scores > cfg.RCNN.SCORE_THRESH # when classes are multiple, we doesn't need it
+        # print("1",norm_scores)
+        # print("2",norm_scores.size()) # size([1,100,4])
+        # print(inds.size()) # size([1,100,4])
 
         for k in range(batch_size):
             cur_inds = inds[k].view(-1)
+            print(cur_inds)
             if cur_inds.sum() == 0:
                 continue
+            
+            print("pred_boxes3d",pred_boxes3d)
 
             pred_boxes3d_selected = pred_boxes3d[k, cur_inds]
             raw_scores_selected = raw_scores[k, cur_inds]
@@ -681,7 +703,9 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
 
     logger.info('result is saved to: %s' % result_dir)
     return ret_dict
-
+#####################################################################################################################################
+#####################################################################################################################################
+#####################################################################################################################################
 
 def eval_one_epoch(model, dataloader, epoch_id, result_dir, logger):
     if cfg.RPN.ENABLED and not cfg.RCNN.ENABLED:
@@ -725,7 +749,9 @@ def load_ckpt_based_on_args(model, logger):
     if cfg.RCNN.ENABLED and args.rcnn_ckpt is not None:
         load_part_ckpt(model, filename=args.rcnn_ckpt, logger=logger, total_keys=total_keys)
 
-
+############################################################################################################################
+############################################# Use eval_single_ckpt for evaluation ##########################################
+############################################################################################################################
 def eval_single_ckpt(root_result_dir):
     root_result_dir = os.path.join(root_result_dir, 'eval')
     # set epoch_id and output dir
@@ -763,6 +789,8 @@ def eval_single_ckpt(root_result_dir):
 
     # start evaluation
     eval_one_epoch(model, test_loader, epoch_id, root_result_dir, logger)
+############################################################################################################################
+############################################################################################################################
 
 
 def get_no_evaluated_ckpt(ckpt_dir, ckpt_record_file):
@@ -899,4 +927,4 @@ if __name__ == "__main__":
             assert os.path.exists(ckpt_dir), '%s' % ckpt_dir
             repeat_eval_ckpt(root_result_dir, ckpt_dir)
         else:
-            eval_single_ckpt(root_result_dir)
+            eval_single_ckpt(root_result_dir) #### Use this

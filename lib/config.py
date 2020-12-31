@@ -7,7 +7,7 @@ cfg = __C
 
 # 0. basic config
 __C.TAG = 'default'
-__C.CLASSES = 'Car'
+__C.CLASSES = 'Multiclass' #### 'Car'
 
 __C.INCLUDE_SIMILAR_TYPE = False
 
@@ -121,7 +121,7 @@ __C.RCNN.CLS_FC = [256, 256]
 __C.RCNN.REG_FC = [256, 256]
 
 # config of training
-__C.RCNN.LOSS_CLS = 'BinaryCrossEntropy'
+__C.RCNN.LOSS_CLS = 'CrossEntropy' #### 'BinaryCrossEntropy'
 __C.RCNN.FOCAL_ALPHA = [0.25, 0.75]
 __C.RCNN.FOCAL_GAMMA = 2.0
 __C.RCNN.CLS_WEIGHT = np.array([1.0, 1.0, 1.0], dtype=np.float32)

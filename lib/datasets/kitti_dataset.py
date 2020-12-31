@@ -51,6 +51,8 @@ class KittiDataset(torch_data.Dataset):
         label_file = os.path.join(self.label_dir, '%06d.txt' % idx)
         assert os.path.exists(label_file)
         return kitti_utils.get_objects_from_label(label_file)
+        #### Example. sample id = 000003 : [<lib.utils.object3d.Object3d object at 0x7f5777026a20>, <lib.utils.object3d.Object3d object at 0x7f5777026a90>, <lib.utils.object3d.Object3d object at 0x7f5777026ac8>]
+        #### objects in each scene
 
     def get_road_plane(self, idx):
         plane_file = os.path.join(self.plane_dir, '%06d.txt' % idx)
