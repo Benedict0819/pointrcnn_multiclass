@@ -18,7 +18,7 @@ import tools.train_utils.train_utils as train_utils
 from tools.train_utils.fastai_optim import OptimWrapper
 from tools.train_utils import learning_schedules_fastai as lsf
 
-
+#### python train_rcnn.py --cfg_file cfgs/default.yaml --batch_size 16 --train_mode rpn --epochs 200
 parser = argparse.ArgumentParser(description="arg parser")
 parser.add_argument('--cfg_file', type=str, default='cfgs/default.yaml', help='specify the config for training')
 parser.add_argument("--train_mode", type=str, default='rpn', required=True, help="specify the training mode")
@@ -147,13 +147,13 @@ if __name__ == "__main__":
         cfg_from_file(args.cfg_file)
     cfg.TAG = os.path.splitext(os.path.basename(args.cfg_file))[0]
 
-    if args.train_mode == 'rpn':
+    if args.train_mode == 'rpn': ####
         cfg.RPN.ENABLED = True
         cfg.RCNN.ENABLED = False
         root_result_dir = os.path.join('../', 'output', 'rpn', cfg.TAG)
     elif args.train_mode == 'rcnn':
         cfg.RCNN.ENABLED = True
-        cfg.RPN.ENABLED = cfg.RPN.FIXED = True
+        cfg.RPN.ENABLED = cfg.RPN.FIXED = True ####
         root_result_dir = os.path.join('../', 'output', 'rcnn', cfg.TAG)
     elif args.train_mode == 'rcnn_offline':
         cfg.RCNN.ENABLED = True

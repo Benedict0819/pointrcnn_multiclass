@@ -13,35 +13,41 @@ class RPN(nn.Module):
         super().__init__()
         self.training_mode = (mode == 'TRAIN')
 
-        MODEL = importlib.import_module(cfg.RPN.BACKBONE)
+        MODEL = importlib.import_module(cfg.RPN.BACKBONE) # cfg.RPN.BACKBONE = pointnet2_msg
         self.backbone_net = MODEL.get_model(input_channels=int(cfg.RPN.USE_INTENSITY), use_xyz=use_xyz)
+        # print("backone_network",self.backbone_net)
 
         # classification branch
         cls_layers = []
         pre_channel = cfg.RPN.FP_MLPS[0][-1]
-        for k in range(0, cfg.RPN.CLS_FC.__len__()):
+        # print("pre_channel(1)",pre_channel) # 128
+        for k in range(0, cfg.RPN.CLS_FC.__len__()): # 128
             cls_layers.append(pt_utils.Conv1d(pre_channel, cfg.RPN.CLS_FC[k], bn=cfg.RPN.USE_BN))
             pre_channel = cfg.RPN.CLS_FC[k]
         cls_layers.append(pt_utils.Conv1d(pre_channel, 1, activation=None))
+
         if cfg.RPN.DP_RATIO >= 0:
             cls_layers.insert(1, nn.Dropout(cfg.RPN.DP_RATIO))
         self.rpn_cls_layer = nn.Sequential(*cls_layers)
 
         # regression branch
         per_loc_bin_num = int(cfg.RPN.LOC_SCOPE / cfg.RPN.LOC_BIN_SIZE) * 2
-        if cfg.RPN.LOC_XZ_FINE:
+        # print("per_loc_bin_num", per_loc_bin_num) # 12
+        if cfg.RPN.LOC_XZ_FINE: # True
             reg_channel = per_loc_bin_num * 4 + cfg.RPN.NUM_HEAD_BIN * 2 + 3
+            # print("reg_channel",reg_channel) # 75
         else:
             reg_channel = per_loc_bin_num * 2 + cfg.RPN.NUM_HEAD_BIN * 2 + 3
         reg_channel += 1  # reg y
 
         reg_layers = []
         pre_channel = cfg.RPN.FP_MLPS[0][-1]
-        for k in range(0, cfg.RPN.REG_FC.__len__()):
+        # print("pre_channel(2)",pre_channel) # 128
+        for k in range(0, cfg.RPN.REG_FC.__len__()): # 128
             reg_layers.append(pt_utils.Conv1d(pre_channel, cfg.RPN.REG_FC[k], bn=cfg.RPN.USE_BN))
             pre_channel = cfg.RPN.REG_FC[k]
         reg_layers.append(pt_utils.Conv1d(pre_channel, reg_channel, activation=None))
-        if cfg.RPN.DP_RATIO >= 0:
+        if cfg.RPN.DP_RATIO >= 0: # 0.5 >= 0
             reg_layers.insert(1, nn.Dropout(cfg.RPN.DP_RATIO))
         self.rpn_reg_layer = nn.Sequential(*reg_layers)
 
@@ -56,6 +62,7 @@ class RPN(nn.Module):
             raise NotImplementedError
 
         self.proposal_layer = ProposalLayer(mode=mode)
+        # print("proposal layer", self.proposal_layer)
         self.init_weights()
 
     def init_weights(self):
@@ -70,7 +77,35 @@ class RPN(nn.Module):
         :param input_data: dict (point_cloud)
         :return:
         """
-        pts_input = input_data['pts_input']
+        # print("rpn_cls_layer", self.rpn_cls_layer)
+        # print("rpn_reg_layer", self.rpn_reg_layer)
+        # rpn_cls_layer Sequential(
+        #     (0): Conv1d(
+        #         (conv): Conv1d(128, 128, kernel_size=(1,), stride=(1,), bias=False)
+        #         (bn): BatchNorm1d(
+        #         (bn): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        #         )
+        #         (activation): ReLU(inplace)
+        #     )
+        #     (1): Dropout(p=0.5)
+        #     (2): Conv1d(
+        #         (conv): Conv1d(128, 1, kernel_size=(1,), stride=(1,))
+        #     )
+        #     )
+        # rpn_reg_layer Sequential(
+        #     (0): Conv1d(
+        #         (conv): Conv1d(128, 128, kernel_size=(1,), stride=(1,), bias=False)
+        #         (bn): BatchNorm1d(
+        #         (bn): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        #         )
+        #         (activation): ReLU(inplace)
+        #     )
+        #     (1): Dropout(p=0.5)
+        #     (2): Conv1d(
+        #         (conv): Conv1d(128, 76, kernel_size=(1,), stride=(1,))
+        #     )
+        #     )
+        pts_input = input_data['pts_input'] # size([16,16384,3])
         backbone_xyz, backbone_features = self.backbone_net(pts_input)  # (B, N, 3), (B, C, N)
 
         rpn_cls = self.rpn_cls_layer(backbone_features).transpose(1, 2).contiguous()  # (B, N, 1)
@@ -79,5 +114,9 @@ class RPN(nn.Module):
         ret_dict = {'rpn_cls': rpn_cls, 'rpn_reg': rpn_reg,
                     'backbone_xyz': backbone_xyz, 'backbone_features': backbone_features}
 
+        # print("output check : rpn_cls", ret_dict['rpn_cls'].size()) # size([16,16384,1])
+        # print("output check : rpn_reg", ret_dict['rpn_reg'].size()) # size([16,16384,67])
+        # print("output check : backbone_xyz", ret_dict['backbone_xyz'].size()) # size([16,16384,3])
+        # print("output check : backbone_features", ret_dict['backbone_features'].size()) # size([16,128,16384])
         return ret_dict
 

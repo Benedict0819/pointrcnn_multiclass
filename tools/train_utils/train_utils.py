@@ -217,6 +217,7 @@ class Trainer(object):
                 trained_epoch = epoch + 1
                 if trained_epoch % ckpt_save_interval == 0:
                     ckpt_name = os.path.join(self.ckpt_dir, 'checkpoint_epoch_%d' % trained_epoch)
+                    # print("checkpoint",checkpoint_state(self.model, self.optimizer, trained_epoch, it))
                     save_checkpoint(
                         checkpoint_state(self.model, self.optimizer, trained_epoch, it), filename=ckpt_name,
                     )

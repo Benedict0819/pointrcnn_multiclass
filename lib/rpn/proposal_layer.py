@@ -140,6 +140,4 @@ class ProposalLayer(nn.Module):
         keep_idx = keep_idx[:cfg[self.mode].RPN_POST_NMS_TOP_N]
 
         return cur_scores[keep_idx], cur_proposals[keep_idx]
-
-
-
+        

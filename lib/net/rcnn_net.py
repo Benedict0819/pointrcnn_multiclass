@@ -18,12 +18,19 @@ class RCNNNet(nn.Module):
         self.SA_modules = nn.ModuleList()
         channel_in = input_channels
 
-        if cfg.RCNN.USE_RPN_FEATURES:
+        if cfg.RCNN.USE_RPN_FEATURES: # True
             self.rcnn_input_channel = 3 + int(cfg.RCNN.USE_INTENSITY) + int(cfg.RCNN.USE_MASK) + int(cfg.RCNN.USE_DEPTH)
+            # print("1",self.rcnn_input_channel) # 5
             self.xyz_up_layer = pt_utils.SharedMLP([self.rcnn_input_channel] + cfg.RCNN.XYZ_UP_LAYER,
                                                    bn=cfg.RCNN.USE_BN)
             c_out = cfg.RCNN.XYZ_UP_LAYER[-1]
+            # print("2",c_out) # 128
             self.merge_down_layer = pt_utils.SharedMLP([c_out * 2, c_out], bn=cfg.RCNN.USE_BN)
+            # print("3", self.merge_down_layer)
+            # SharedMLP(
+            #     (layer0): Conv2d(
+            #     (conv): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1))
+            #     (activation): ReLU(inplace)))
 
         for k in range(cfg.RCNN.SA_CONFIG.NPOINTS.__len__()):
             mlps = [channel_in] + cfg.RCNN.SA_CONFIG.MLPS[k]
@@ -81,7 +88,6 @@ class RCNNNet(nn.Module):
         if cfg.RCNN.DP_RATIO >= 0:
             reg_layers.insert(1, nn.Dropout(cfg.RCNN.DP_RATIO))
         self.reg_layer = nn.Sequential(*reg_layers)
-
         self.proposal_target_layer = ProposalTargetLayer()
         self.init_weights(weight_init='xavier')
 
@@ -182,11 +188,25 @@ class RCNNNet(nn.Module):
             li_xyz, li_features = self.SA_modules[i](l_xyz[i], l_features[i])
             l_xyz.append(li_xyz)
             l_features.append(li_features)
+        # print(l_features)
 
         rcnn_cls = self.cls_layer(l_features[-1]).transpose(1, 2).contiguous().squeeze(dim=1)  # (B, 1 or 2)
         rcnn_reg = self.reg_layer(l_features[-1]).transpose(1, 2).contiguous().squeeze(dim=1)  # (B, C)
+
         ret_dict = {'rcnn_cls': rcnn_cls, 'rcnn_reg': rcnn_reg}
+        # print("output check : rcnn_cls", ret_dict['rcnn_cls'].size()) # size([256,4])
+        # print("output check : rcnn_reg", ret_dict['rcnn_reg'].size()) # size([256,46])
 
         if self.training:
             ret_dict.update(target_dict)
+        # print(list(ret_dict.keys()))
+        # ['rcnn_cls', 'rcnn_reg', 'sampled_pts', 'pts_feature', 'cls_label', 'reg_valid_mask', 'gt_of_rois', 'gt_iou', 'roi_boxes3d', 'pts_input']
+        # print("sampled_pts", ret_dict['sampled_pts'].size()) # size([256,512,3])
+        # print("pts_feature", ret_dict['pts_feature'].size()) # size([256,512,130])
+        # print("cls_label", ret_dict['cls_label'].size()) # size([256])
+        # print("reg_valid_mask", ret_dict['reg_valid_mask'].size()) # size([256])
+        # print("gt_of_rois", ret_dict['gt_of_rois'].size()) # size([256,7])
+        # print("gt_iou", ret_dict['gt_iou'].size()) # size([256])
+        # print("roi_boxes3d", ret_dict['roi_boxes3d'].size()) # size([256,7])
+        # print("pts_input", ret_dict['pts_input'].size()) # size([256,512,133])
         return ret_dict

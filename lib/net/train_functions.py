@@ -164,7 +164,6 @@ def model_joint_fn_decorator():
         elif cfg.RCNN.LOSS_CLS == 'CrossEntropy': #### TRAIN -> RCNN
         # elif cfg.TRAIN.LOSS_CLS == 'CrossEntropy':
             # print(rcnn_cls.size()) #### torch.size([256,4])
-            # print(rcnn_cls)
             # tensor([[ 0.0186, -0.0566, -0.0374, -0.0273],
             #         [-0.0119, -0.0458, -0.0206, -0.0464],
             #         [-0.0035, -0.0503, -0.0334, -0.0135],
@@ -176,7 +175,6 @@ def model_joint_fn_decorator():
             # rcnn_cls_reshape = rcnn_cls.view(rcnn_cls.shape[0], -1).sum(dim=1) #### choose sum / mean
             # rcnn_cls_reshape = rcnn_cls.view(-1)
             rcnn_cls_reshape = rcnn_cls.view(rcnn_cls.shape[0], -1)
-
             cls_target = cls_label_flat.long()
             # print(cls_target) # print(cls_target.size()) #### torch.size([256])
             # tensor([ 1, -1,  1,  1, -1,  1, -1, -1,  1, -1, -1,  1,  1,  1, -1,  1,  1,  1,
@@ -195,10 +193,8 @@ def model_joint_fn_decorator():
             #         0,  0,  0,  0,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
             #         0,  0,  0,  0], device='cuda:0')       
             cls_valid_mask = (cls_label_flat >= 0).float()
-
             #### cls_target = cls_target.unsqueeze(1) #### size([256,1])
             #### cls_target = torch.cat((cls_target, cls_target, cls_target, cls_target), 1) #### size([256,4])
-
             #### cls_target = cls_target.view(-1)
             # print(rcnn_cls_reshape.size()) #### size([256,4])
             # print(cls_target.size()) #### size([256])

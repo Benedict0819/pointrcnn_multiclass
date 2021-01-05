@@ -32,7 +32,7 @@ class KittiRCNNDataset(KittiDataset):
 
         self.num_class = self.classes.__len__()
 
-        self.npoints = npoints
+        self.npoints = npoints # 16384
         self.sample_id_list = []
         self.random_select = random_select
         self.logger = logger
@@ -71,6 +71,8 @@ class KittiRCNNDataset(KittiDataset):
                     easy_list, hard_list = [], []
                     for k in range(self.gt_database.__len__()):
                         obj = self.gt_database[k]
+                        # print("k",k) #### 0 ~ 13726
+                        # print("obj",obj['points'].shape[0]) #### how many point clouds each object has?
                         if obj['points'].shape[0] > 100:
                             easy_list.append(obj)
                         else:
@@ -82,7 +84,8 @@ class KittiRCNNDataset(KittiDataset):
                     logger.info('Loading gt_database(%d) from %s' % (len(self.gt_database), gt_database_dir))
 
             if mode == 'TRAIN':
-                self.preprocess_rpn_training_data()
+                self.preprocess_rpn_training_data() #### Use this!
+
             else:
                 self.sample_id_list = [int(sample_id) for sample_id in self.image_idx_list]
                 self.logger.info('Load testing samples from %s' % self.imageset_dir)
@@ -142,11 +145,11 @@ class KittiRCNNDataset(KittiDataset):
         rpn_feature_file = os.path.join(rpn_feature_dir, '%06d.npy' % idx)
         rpn_xyz_file = os.path.join(rpn_feature_dir, '%06d_xyz.npy' % idx)
         rpn_intensity_file = os.path.join(rpn_feature_dir, '%06d_intensity.npy' % idx)
-        if cfg.RCNN.USE_SEG_SCORE:
+        if cfg.RCNN.USE_SEG_SCORE: 
             rpn_seg_file = os.path.join(rpn_feature_dir, '%06d_rawscore.npy' % idx)
             rpn_seg_score = np.load(rpn_seg_file).reshape(-1)
             rpn_seg_score = torch.sigmoid(torch.from_numpy(rpn_seg_score)).numpy()
-        else:
+        else: # FALSE
             rpn_seg_file = os.path.join(rpn_feature_dir, '%06d_seg.npy' % idx)
             rpn_seg_score = np.load(rpn_seg_file).reshape(-1)
         return np.load(rpn_xyz_file), np.load(rpn_feature_file), np.load(rpn_intensity_file).reshape(-1), rpn_seg_score
@@ -760,7 +763,7 @@ class KittiRCNNDataset(KittiDataset):
             aug_box3d = np.concatenate([box3d[0:3] + pos_shift, box3d[3:6] * hwl_scale,
                                         box3d[6:7] + angle_rot])
             return aug_box3d
-        elif cfg.RCNN.REG_AUG_METHOD == 'multiple':
+        elif cfg.RCNN.REG_AUG_METHOD == 'multiple': #### use multiple 
             # pos_range, hwl_range, angle_range, mean_iou
             range_config = [[0.2, 0.1, np.pi / 12, 0.7],
                             [0.3, 0.15, np.pi / 12, 0.6],

@@ -68,7 +68,49 @@ def create_logger(log_file):
 
 def save_kitti_format(sample_id, calib, bbox3d, kitti_output_dir, scores, img_shape):
     corners3d = kitti_utils.boxes3d_to_corners3d(bbox3d)
+    # print("corners3d", corners3d.size())
+#     corners3d [[[2.0840487  1.6417629  5.663367  ]
+#   [3.6845136  1.6417629  5.683498  ]
+#   [3.7339568  1.6417629  1.7526866 ]
+#   [2.133492   1.6417629  1.7325555 ]
+#   [2.0840487  0.17414272 5.663367  ]
+#   [3.6845136  0.17414272 5.683498  ]
+#   [3.7339568  0.17414272 1.7526866 ]
+#   [2.133492   0.17414272 1.7325555 ]]
+
+#  [[2.0840487  1.6417629  5.663367  ]
+#   [3.6845136  1.6417629  5.683498  ]
+#   [3.7339568  1.6417629  1.7526866 ]
+#   [2.133492   1.6417629  1.7325555 ]
+#   [2.0840487  0.17414272 5.663367  ]
+#   [3.6845136  0.17414272 5.683498  ]
+#   [3.7339568  0.17414272 1.7526866 ]
+#   [2.133492   0.17414272 1.7325555 ]]
+
+#  [[2.0840487  1.6417629  5.663367  ]
+#   [3.6845136  1.6417629  5.683498  ]
+#   [3.7339568  1.6417629  1.7526866 ]
+#   [2.133492   1.6417629  1.7325555 ]
+#   [2.0840487  0.17414272 5.663367  ]
+#   [3.6845136  0.17414272 5.683498  ]
+#   [3.7339568  0.17414272 1.7526866 ]
+#   [2.133492   0.17414272 1.7325555 ]]
+
+#  [[2.0840487  1.6417629  5.663367  ]
+#   [3.6845136  1.6417629  5.683498  ]
+#   [3.7339568  1.6417629  1.7526866 ]
+#   [2.133492   1.6417629  1.7325555 ]
+#   [2.0840487  0.17414272 5.663367  ]
+#   [3.6845136  0.17414272 5.683498  ]
+#   [3.7339568  0.17414272 1.7526866 ]
+#   [2.133492   0.17414272 1.7325555 ]]]
+
     img_boxes, _ = calib.corners3d_to_img_boxes(corners3d)
+    # print("img_boxes", img_boxes)
+    # img_boxes [[ 882.56894859  194.90586918 2168.93240412  855.34960504]
+    #             [ 882.56894859  194.90586918 2168.93240412  855.34960504]
+    #             [ 882.56894859  194.90586918 2168.93240412  855.34960504]
+    #             [ 882.56894859  194.90586918 2168.93240412  855.34960504]]
 
     img_boxes[:, 0] = np.clip(img_boxes[:, 0], 0, img_shape[1] - 1)
     img_boxes[:, 1] = np.clip(img_boxes[:, 1], 0, img_shape[0] - 1)
@@ -87,11 +129,17 @@ def save_kitti_format(sample_id, calib, bbox3d, kitti_output_dir, scores, img_sh
             x, z, ry = bbox3d[k, 0], bbox3d[k, 2], bbox3d[k, 6]
             beta = np.arctan2(z, x)
             alpha = -np.sign(beta) * np.pi / 2 + beta + ry
-
-            print('%s -1 -1 %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f' %
-                  (cfg.CLASSES, alpha, img_boxes[k, 0], img_boxes[k, 1], img_boxes[k, 2], img_boxes[k, 3],
-                   bbox3d[k, 3], bbox3d[k, 4], bbox3d[k, 5], bbox3d[k, 0], bbox3d[k, 1], bbox3d[k, 2],
-                   bbox3d[k, 6], scores[k]), file=f)
+            # print("scores",scores)
+            # scores [[  -8.162392     4.4787984 -348.98734   -339.58255  ]
+            #         [  -8.162392     4.4787984 -348.98734   -339.58255  ]
+            #         [  -8.162392     4.4787984 -348.98734   -339.58255  ]
+            #         [  -8.162392     4.4787984 -348.98734   -339.58255  ]]
+            
+            # annotation
+            # print('%s -1 -1 %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f' %
+            #       (cfg.CLASSES, alpha, img_boxes[k, 0], img_boxes[k, 1], img_boxes[k, 2], img_boxes[k, 3],
+            #        bbox3d[k, 3], bbox3d[k, 4], bbox3d[k, 5], bbox3d[k, 0], bbox3d[k, 1], bbox3d[k, 2], bbox3d[k, 6],
+            #         scores[k]), file=f)
 
 
 def save_rpn_features(seg_result, rpn_scores_raw, pts_features, backbone_xyz, backbone_features, kitti_features_dir,
@@ -478,7 +526,6 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
     logger.info('---- EPOCH %s JOINT EVALUATION ----' % epoch_id)
     logger.info('==> Output file: %s' % result_dir)
     model.eval()
-
     thresh_list = [0.1, 0.3, 0.5, 0.7, 0.9]
     total_recalled_bbox_list, total_gt_bbox = [0] * 5, 0
     total_roi_recalled_bbox_list = [0] * 5
@@ -497,12 +544,17 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
         # model inference
         ret_dict = model(input_data)
 
-        roi_scores_raw = ret_dict['roi_scores_raw']  # (B, M)
-        roi_boxes3d = ret_dict['rois']  # (B, M, 7)
-        seg_result = ret_dict['seg_result'].long()  # (B, N)
+        roi_scores_raw = ret_dict['roi_scores_raw']  # (B, M) (1,100)
+        # print("roi_scores_raw", roi_scores_raw.size())
+        roi_boxes3d = ret_dict['rois']  # (B, M, 7) (1,100,7)
+        # print("roi_boxes3d", roi_boxes3d.size())
+        seg_result = ret_dict['seg_result'].long()  # (B, N) (1,16384)
+        # print("seg_result", seg_result.size())
 
         rcnn_cls = ret_dict['rcnn_cls'].view(batch_size, -1, ret_dict['rcnn_cls'].shape[1])
         rcnn_reg = ret_dict['rcnn_reg'].view(batch_size, -1, ret_dict['rcnn_reg'].shape[1])  # (B, M, C)
+        # print("rcnn_cls", rcnn_cls.size()) # size([1,100,4])
+        # print("rcnn_reg", rcnn_reg.size()) # size([1,100,46])
 
         # bounding box regression
         anchor_size = MEAN_SIZE
@@ -517,6 +569,7 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
                                           get_xz_fine=True, get_y_by_bin=cfg.RCNN.LOC_Y_BY_BIN,
                                           loc_y_scope=cfg.RCNN.LOC_Y_SCOPE, loc_y_bin_size=cfg.RCNN.LOC_Y_BIN_SIZE,
                                           get_ry_fine=True).view(batch_size, -1, 7)
+        # print("pred_boxes3d", pred_boxes3d.size()) # size([1,100,7])
 
         # scoring
         # print("rcnn_cls.size", rcnn_cls.size()) #### size([1,100,4]) vs size([1,100,1])
@@ -527,13 +580,17 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
 
         else:
             pred_classes = torch.argmax(rcnn_cls, dim=2).view(-1)
-            # print("pred_classes", pred_classes) # size([100]) : select highest score labels
+            print("pred_classes", pred_classes) # size([100]) : select highest score labels
+            
             cls_norm_scores = F.softmax(rcnn_cls, dim=2)
+            # print("cls_norm_scores", cls_norm_scores)
+            
             # print(cls_norm_scores.size()) # size([1,100,4])
-            raw_scores = rcnn_cls[:, pred_classes]
+            raw_scores = rcnn_cls[:,pred_classes]
             # print("1",raw_scores) # inlcuding minus value
             # print("2",raw_scores.size()) # size([1,100,4])
-            norm_scores = cls_norm_scores[:, pred_classes]
+            
+            norm_scores = cls_norm_scores[:, pred_classes, :] #### why does .long need?
             # print("3",norm_scores) # value range (0~1)
             # print("4",norm_scores.size()) # size([1,100,4])
 
@@ -545,7 +602,7 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
 
         # evaluation
         recalled_num = gt_num = rpn_iou = 0
-        if not args.test:
+        if not args.test: # if False
             if not cfg.RPN.FIXED:
                 rpn_cls_label, rpn_reg_label = data['rpn_cls_label'], data['rpn_reg_label']
                 rpn_cls_label = torch.from_numpy(rpn_cls_label).cuda(non_blocking=True).long()
@@ -604,6 +661,7 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
             seg_result_np = seg_result.cpu().numpy()
             output_data = np.concatenate((rpn_xyz_np, rpn_cls_np.reshape(batch_size, -1, 1),
                                           seg_result_np.reshape(batch_size, -1, 1)), axis=2)
+            print("output_data", output_data)
 
             for k in range(batch_size):
                 cur_sample_id = sample_id[k]
@@ -618,22 +676,36 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
                 np.save(output_file, output_data.astype(np.float32))
 
         # scores thresh
+        #### Background vs Foreground scoring
+
         #### inds = norm_scores > cfg.RCNN.SCORE_THRESH # when classes are multiple, we doesn't need it
+        inds = norm_scores.max(dim=2)[0] # size([1,100]) # 0(background) vs 1,2,3(foreground)
+        # print("inds size",inds)
+
         # print("1",norm_scores)
         # print("2",norm_scores.size()) # size([1,100,4])
         # print(inds.size()) # size([1,100,4])
-
+        cur_inds = []
         for k in range(batch_size):
-            cur_inds = inds[k].view(-1)
+            for i in range(100):
+                if pred_classes[i] >= 1:
+                    cur_inds.append(i)
             print(cur_inds)
-            if cur_inds.sum() == 0:
-                continue
-            
-            print("pred_boxes3d",pred_boxes3d)
+            ## cur_inds = inds[k].view(-1)
+            # print("cur_inds",cur_inds.size()) # size([100])
+            ## if cur_inds.sum() == 0:
+            ##     continue
+            # print("pred_boxes3d",pred_boxes3d.size()) # size([1,100,7])
 
             pred_boxes3d_selected = pred_boxes3d[k, cur_inds]
+            # print("pred_box", pred_boxes3d_selected)
+            # print(pred_boxes3d_selected.size()) # size([100,7])
             raw_scores_selected = raw_scores[k, cur_inds]
+            # print("raw_scores_selected", raw_scores_selected)
+            # print(raw_scores_selected.size()) # size([100,4]) [16.6960, -7.6965, -609.9609, -617.7483]
             norm_scores_selected = norm_scores[k, cur_inds]
+            # print("norm_scores_selected", norm_scores_selected)
+            # print(norm_scores_selected.size()) # size([100,4]) [1,0,0,0]
 
             # NMS thresh
             # rotated nms
@@ -646,10 +718,12 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
             cur_sample_id = sample_id[k]
             calib = dataset.get_calib(cur_sample_id)
             final_total += pred_boxes3d_selected.shape[0]
+            print("final total", final_total)
             image_shape = dataset.get_image_shape(cur_sample_id)
             save_kitti_format(cur_sample_id, calib, pred_boxes3d_selected, final_output_dir, scores_selected, image_shape)
-
+    print("111")
     progress_bar.close()
+    print("222")
     # dump empty files
     split_file = os.path.join(dataset.imageset_dir, '..', '..', 'ImageSets', dataset.split + '.txt')
     split_file = os.path.abspath(split_file)
@@ -670,6 +744,8 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
 
     avg_rpn_iou = (total_rpn_iou / max(cnt, 1.0))
     avg_cls_acc = (total_cls_acc / max(cnt, 1.0))
+    print("avg_rpn_iou",avg_rpn_iou)
+    print("avg_cls_acc",avg_cls_acc)
     avg_cls_acc_refined = (total_cls_acc_refined / max(cnt, 1.0))
     avg_det_num = (final_total / max(len(dataset), 1.0))
     logger.info('final average detections: %.3f' % avg_det_num)
@@ -695,8 +771,14 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
 
     if cfg.TEST.SPLIT != 'test':
         logger.info('Averate Precision:')
-        name_to_class = {'Car': 0, 'Pedestrian': 1, 'Cyclist': 2}
-        ap_result_str, ap_dict = kitti_evaluate(dataset.label_dir, final_output_dir, label_split_file=split_file,
+        ####################################### Need to change ##########################################
+        if cfg.CLASSES == 'Multiclass': #### For Multiclass Classification
+            name_to_class = {'Car': 0, 'Pedestrian': 1, 'Cyclist': 2}
+            ap_result_str, ap_dict = kitti_evaluate(dataset.label_dir, final_output_dir, label_split_file=split_file,
+                                                current_class=[0,1,2]) ####
+        else:    
+            name_to_class = {'Car': 0, 'Pedestrian': 1, 'Cyclist': 2}
+            ap_result_str, ap_dict = kitti_evaluate(dataset.label_dir, final_output_dir, label_split_file=split_file,
                                                 current_class=name_to_class[cfg.CLASSES])
         logger.info(ap_result_str)
         ret_dict.update(ap_dict)
@@ -709,11 +791,15 @@ def eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger):
 
 def eval_one_epoch(model, dataloader, epoch_id, result_dir, logger):
     if cfg.RPN.ENABLED and not cfg.RCNN.ENABLED:
+        print("1")
         ret_dict = eval_one_epoch_rpn(model, dataloader, epoch_id, result_dir, logger)
     elif not cfg.RPN.ENABLED and cfg.RCNN.ENABLED:
+        print("2")
         ret_dict = eval_one_epoch_rcnn(model, dataloader, epoch_id, result_dir, logger)
-    elif cfg.RPN.ENABLED and cfg.RCNN.ENABLED:
+    elif cfg.RPN.ENABLED and cfg.RCNN.ENABLED: #### Use this
+        print("3")
         ret_dict = eval_one_epoch_joint(model, dataloader, epoch_id, result_dir, logger)
+        print("ret_dict", ret_dict)
     else:
         raise NotImplementedError
     return ret_dict
@@ -788,7 +874,7 @@ def eval_single_ckpt(root_result_dir):
     load_ckpt_based_on_args(model, logger)
 
     # start evaluation
-    eval_one_epoch(model, test_loader, epoch_id, root_result_dir, logger)
+    eval_one_epoch(model, test_loader, epoch_id, root_result_dir, logger) 
 ############################################################################################################################
 ############################################################################################################################
 
@@ -900,7 +986,7 @@ if __name__ == "__main__":
         cfg.RCNN.ENABLED = False
         root_result_dir = os.path.join('../', 'output', 'rpn', cfg.TAG)
         ckpt_dir = os.path.join('../', 'output', 'rpn', cfg.TAG, 'ckpt')
-    elif args.eval_mode == 'rcnn':
+    elif args.eval_mode == 'rcnn': ####
         cfg.RCNN.ENABLED = True
         cfg.RPN.ENABLED = cfg.RPN.FIXED = True
         root_result_dir = os.path.join('../', 'output', 'rcnn', cfg.TAG)

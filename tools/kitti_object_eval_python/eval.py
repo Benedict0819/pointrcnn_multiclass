@@ -439,7 +439,7 @@ def _prepare_data(gt_annos, dt_annos, current_class, difficulty):
     return (gt_datas_list, dt_datas_list, ignored_gts, ignored_dets, dontcares,
             total_dc_num, total_num_valid_gt)
 
-
+#### (important!)
 def eval_class(gt_annos,
                dt_annos,
                current_classes,
@@ -563,7 +563,7 @@ def print_str(value, *arg, sstream=None):
     print(value, *arg, file=sstream)
     return sstream.getvalue()
 
-
+####
 def do_eval(gt_annos,
             dt_annos,
             current_classes,
@@ -573,6 +573,8 @@ def do_eval(gt_annos,
     difficultys = [0, 1, 2]
     ret = eval_class(gt_annos, dt_annos, current_classes, difficultys, 0,
                      min_overlaps, compute_aos)
+    print("I wonder this point")
+    print("ret",ret)
     # ret: [num_class, num_diff, num_minoverlap, num_sample_points]
     mAP_bbox = get_mAP(ret["precision"])
     mAP_aos = None
@@ -606,11 +608,11 @@ def do_coco_style_eval(gt_annos, dt_annos, current_classes, overlap_ranges,
 
 
 def get_official_eval_result(gt_annos, dt_annos, current_classes):
-    overlap_0_7 = np.array([[0.7, 0.5, 0.5, 0.7,
-                             0.5], [0.7, 0.5, 0.5, 0.7, 0.5],
+    overlap_0_7 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5], 
+                            [0.7, 0.5, 0.5, 0.7, 0.5],
                             [0.7, 0.5, 0.5, 0.7, 0.5]])
-    overlap_0_5 = np.array([[0.7, 0.5, 0.5, 0.7,
-                             0.5], [0.5, 0.25, 0.25, 0.5, 0.25],
+    overlap_0_5 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5], 
+                            [0.5, 0.25, 0.25, 0.5, 0.25],
                             [0.5, 0.25, 0.25, 0.5, 0.25]])
     min_overlaps = np.stack([overlap_0_7, overlap_0_5], axis=0)  # [2, 3, 5]
     class_to_name = {
@@ -630,6 +632,7 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes):
         else:
             current_classes_int.append(curcls)
     current_classes = current_classes_int
+    #### print("current_classes printout (important!)", current_classes) # [0,1,2]
     min_overlaps = min_overlaps[:, :, current_classes]
     result = ''
     # check whether alpha is valid
@@ -722,6 +725,7 @@ def get_coco_eval_result(gt_annos, dt_annos, current_classes):
         # mAP result: [num_class, num_diff, num_minoverlap]
         o_range = np.array(class_to_range[curcls])[[0, 2, 1]]
         o_range[1] = (o_range[2] - o_range[0]) / (o_range[1] - 1)
+        # print("here")
         result += print_str((f"{class_to_name[curcls]} "
                              "coco AP@{:.2f}:{:.2f}:{:.2f}:".format(*o_range)))
         result += print_str((f"bbox AP:{mAPbbox[j, 0]:.2f}, "
